@@ -1,0 +1,768 @@
+$(document).ready(function(){
+    var click = false;
+    var  role = null;
+    $("body").delegate("#news_pager a", "click", function(event){
+        event.preventDefault();
+        var page_id = $('#current_page').val();
+        var comm_id = $('#community_id').val();
+        var folder_id = $('#folder_id').val();
+        var url = $(this).attr('href');
+        console.log(url);
+        $.post(url,{page_id : page_id, comm_id: comm_id, folder_id: folder_id}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#current_page').val(resp.page_id);
+                $('#community_page_content').html(resp.data);
+                if(resp.type_page == 'news'){
+                    getComments();
+                }
+            }
+        });
+        return false;
+    });
+
+    $("body").delegate("#update_news", "click", function(event){
+        event.preventDefault();
+        $('#news_edit_form').submit();
+        return false;
+    });
+    
+    $("body").delegate("#submit_new_album", "click", function(event){
+        event.preventDefault();
+        if($('#new_folder').val() != '') {
+            $('#folders_form').submit();
+        } else {
+            alert(t('Введите название фотоальбома'));
+        }
+        return false;
+    });
+    
+    $("body").delegate("#update_page_other", "click", function(event){
+        event.preventDefault();
+        $('#other_edit_form').submit();
+        return false;
+    });
+
+
+    $("body").delegate(".community_menu", "click", function(event){
+        event.preventDefault();
+        $('.load_more').hide();
+        $('.profile-links li').removeClass('active');
+        $(this).parent().addClass('active');
+        var page_id = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        var url = $('#data_content_url').val();
+        $.post(url,{page_id : page_id, comm_id: comm_id}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#current_page').val(resp.page_id);
+                $('#community_page_content').html(resp.data);
+
+                }
+        });
+        return false;
+    });
+    
+    $("body").delegate(".community_images_folder", "click", function(event){
+        event.preventDefault();
+        $('.load_more').hide();
+        var page_id = $('#gallery_page_id').val();
+        var comm_id = $('#community_id').val();
+        var folder_id = $(this).attr('rel');
+        var url = $('#data_content_url').val();
+        $.post(url,{page_id : page_id, comm_id: comm_id, folder_id: folder_id}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#current_page').val(resp.page_id);
+                if(resp.folder_id) $('#folder_id').val(resp.folder_id);
+                $('#community_page_content').html(resp.data);
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate(".commentate_news", "click", function(event){
+        event.preventDefault();
+        var news_id = $(this).attr('rel');
+        $('#container_reply').appendTo($('.comments_list_' + news_id));
+        $('#container_reply').show();
+        $('#container_reply .parrent_id').val(news_id);
+        return false;
+    });
+
+    $("body").delegate("#add_new_page", "click", function(event){
+        event.preventDefault();
+        $('.div_new_page').show();
+        $('#text_new_page').val('');
+        return false;
+    });
+    
+    $("body").delegate(".create_community", "click", function(event){
+        event.preventDefault();
+        $.fancybox.showActivity();
+        var url = $(this).attr('href');
+        $.post(url,{}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $.fancybox(resp.html);
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate("#but_add_new_page", "click", function(event){
+        event.preventDefault();
+        if($('#text_new_page').val() == '') {
+            alert(t('Заполните название страницы'));
+            return false;
+        }
+        var url = $(this).attr('href');
+        var page_name = $('#text_new_page').val();
+        $.post(url, {page_name: page_name}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                location.reload(true);
+            }
+        });
+        $('.div_new_page').val('').hide();
+        return false;
+    });
+
+    $("body").delegate(".delete_page", "click", function(event){
+        event.preventDefault();
+        var url = $(this).attr('href');
+        var id = $(this).attr('rel');
+        var message = t('Вы хотите удалить страницу?');
+        var answer = confirm(message);
+        if (answer){
+            $.post(url, {}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    $('.for_delete_page_'+id).remove();
+                }
+            });
+        }
+        return false;
+    });
+
+    $("body").delegate(".delete_news", "click", function(event){
+        event.preventDefault();
+        var url = $(this).attr('href');
+        var message = t('Вы хотите удалить новость?');
+        var answer = confirm(message);
+        if (answer){
+            window.location = url;
+        }
+        return false;
+    });
+    
+    $("body").delegate("#incomming_settings", "click", function(event){
+        event.preventDefault();
+        var url = $(this).attr('rel');
+        window.location = url;
+        return false;
+    });
+    
+    $("body").delegate(".delete_image", "click", function(event){
+        event.preventDefault();
+        var el = $(this);
+        var url = $(this).attr('href');
+        var message = t('Вы хотите удалить картинку?');
+        var answer = confirm(message);
+        if (answer){
+            $.post(url, {}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.parent().parent().remove();
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate("#community_page_content .delete_comm_comment", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите удалить этот коментарий?"));
+        var el = $(this);
+        var url = $(this).attr('href');
+        if (answer){
+            var message_id = $(this).attr('rel');
+            $.post(url,{message_id: message_id}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    var current_page = $('#news_id').val();
+                    $('#list_comment_'+message_id).remove();
+                    $('.startLoadComment_'+current_page).val($('.startLoadComment_'+current_page).val()-1);
+                    el.parent().parent().remove();
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate(".delete_folder", "click", function(event){
+        event.preventDefault();
+        var el = $(this);
+        var url = $(this).attr('href');
+        var message = t('Вы хотите удалить папку?');
+        var answer = confirm(message);
+        if (answer){
+            $.post(url, {}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.parent().find('.span_deleted:first').show();
+                    el.remove();
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate("#delete_community", "click", function(event){
+        event.preventDefault();
+        var message = t('Вы хотите удалить сообщество?');
+        var answer = confirm(message);
+        if (answer){
+            var comm_id = $(this).attr('rel');
+            var url = $(this).attr('href');
+            $.post(url, {comm_id : comm_id}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    window.location = "/communities"
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate("#community_type_user", "change", function(event){
+        event.preventDefault();
+        var user_id = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        var role= $(this).val();
+        var url = $('#comm_change_status_user').val();
+        $.post(url, {comm_id: comm_id, user_id: user_id, role: role}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                
+            }
+        });
+        
+        return false;
+    });
+    
+    $("body").delegate("#save_settings", "click", function(event){
+        event.preventDefault();
+        $('#form_admin_settings').submit();
+        return false;
+    });
+    
+    $("body").delegate(".send_message_news", "click", function(event){
+        event.preventDefault();
+        if(click == true) return false;
+        click = true;
+        var news_id = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        var comment = $('.message_text').val();
+        if(comment.length == 0) {
+            alert(t('Введите сообщение'));
+            return false;
+        }
+        if(comment.length > 420) {
+            alert(t('Сообщение слишком длинное'));
+            return false;
+        }
+        var url = $('#data_send_news_comments_url').val();
+        $.post(url, {comm_id: comm_id, news_id:news_id, comment: comment}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('.message_text').val('');
+                $('.message_text_'+news_id).val('').blur().keyup();
+                $("#container_reply_"+news_id).hide().removeClass('opened');
+                $('.comments_list_'+news_id).append(resp.data);
+            }
+            click = false;
+        });
+        return false;
+    });
+    
+    $("body").delegate(".load_more", "click", function(event){
+        event.preventDefault();
+        var news_id = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        var start = $('.startLoadComment_'+news_id).val();
+        var url = $('#data_news_comments_url').val();
+        $.post(url,{comm_id: comm_id, news_id : news_id, start: start}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('.comments_list_'+resp.news_id).append(resp.data).show();
+                $('.countCommentsLeft_'+resp.news_id).val(resp.countCommentsLeft);
+                $('.startLoadComment_'+resp.news_id).val(resp.start);
+                if(resp.countCommentsLeft > 0) {
+                    $('.load_more_'+resp.news_id).show();
+                } else {
+                    $('.load_more_'+resp.news_id).hide();
+                }
+            }
+        });
+        return false;
+    });
+
+    $("body").delegate(".cancel_message_news", "click", function(event){
+        event.preventDefault();
+        $('#container_reply').hide();
+        $('.message_text').val('');
+        return false;
+    });
+
+    $("body").delegate(".getMyComunityList", "click", function(event){
+        event.preventDefault();
+        getComunityList('admins');
+        return false;
+    });
+    
+    $("body").delegate(".get_list_communities", "click", function(event){
+        event.preventDefault();
+        $('.other_communities').parent().hide();
+        getComunityList('members');
+        getComunityList('admins');
+        $('#community_nothing_was_found').show();
+        return false;
+    });
+    
+    $("body").delegate(".getAllComunityList", "click", function(event){
+        event.preventDefault();
+        getComunityList('members');
+        return false;
+    });
+    
+    $('#community_search').on('keyup', function(e) {
+        if (e.keyCode === 13) {
+            $('#link_community_search').click();
+        }
+    });
+    
+    $("body").delegate("#link_community_search", "click", function(event){
+        event.preventDefault();
+        if($('#community_search').val() == '') return false;
+        var str = $('#community_search').val();
+        var url = $('#search_communities').val();
+        var start = 0;
+        $.post(url,{str: str, start: start}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                if(resp.data != '') {
+                    $('#community_nothing_was_found').hide();
+                    $('.admins_communities').parent().hide();
+                    $('.members_communities').parent().hide();
+                    $('.other_communities').html(resp.data).parent().show();
+                } else {
+                    $('.admins_communities').parent().hide();
+                    $('.members_communities').parent().hide();
+                    $('.other_communities').parent().hide();
+                    $('#community_nothing_was_found').show();
+                }
+            }
+        });
+        
+        $('#community_search').val('');
+        return false;
+    });
+    
+    $("body").delegate("#linkcreatenewcommunity", "click", function(event){
+        event.preventDefault();
+        if($('#comm_name').val() == '') {
+            alert(t('Введите название сообщества'));
+            return false;
+        }
+        $('#formcreatenewcommunity').submit();
+        return false;
+    });
+    
+    $("body").delegate(".tackle", "click", function(event){
+        event.preventDefault();
+        $('#wysiwyg').wysiwyg('insertHtml', '<br><label align="center" class="page_break">--------- Разрыв страницы ---------</label><br>');
+        return false;
+    });
+
+    $("body").delegate(".community_cancel_message_wall", "click", function(event){
+        event.preventDefault();
+        var id = $(this).attr('rel');
+        $('.reply_'+id).show();
+        $("#container_reply_"+id).hide();
+        return false;
+    });
+
+    $("body").delegate(".community_send_message_wall", "click", function(event){
+        event.preventDefault();
+        if(click == true) return false;
+        click = true;
+        var id_parent = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        var page_id = $('#page_id').val();
+        var message = $('.message_text_'+id_parent).val();
+        var url = $('#postMessageCommunityWall').val();
+        if(message.length == 0) {
+            alert(t('Введите сообщение'));
+            return false;
+        }
+        if(message.length > 420) {
+            alert(t('Сообщение слишком длинное'));
+            return false;
+        }
+        $.post(url,{comm_id: comm_id, id_parent: id_parent, message: message, page_id: page_id}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                if(resp.parent_message == 0) {
+                    $('#list_wall_messages').prepend(resp.data);
+                } else {
+                    $('#list_comment_'+resp.parent_message).append(resp.data);
+                }
+                $('.message_text_'+id_parent).val('').blur().keyup();
+                $("#container_reply_"+id_parent).hide().removeClass('opened');
+                if(id_parent > 0) {
+                    $("#container_reply_"+id_parent).hide().removeClass('opened');
+                    $('.reply_'+id_parent).show();
+                    $('#wall_'+id_parent).append(message);
+                } else {
+                    $('.news_container').prepend(message);
+                }
+            }
+            click = false;
+        });
+        return false;
+    });
+
+    $("body").delegate(".load_all_community_comments", "click", function(event){
+        event.preventDefault();
+        var message_id = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        var start = $('.last_comments_'+message_id).val();
+        var url = $(this).attr('href');
+        $.post(url,{comm_id: comm_id, message_id: message_id, 'start': start, 'page': 'wall'}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                var message_id = resp.message_id;
+                $('#list_comment_'+message_id).append(resp.data);
+                $('.left_comments_'+message_id).val(resp.commentsLeft);
+                $('.last_comments_'+message_id).val(resp.start);
+                if(resp.commentsLeft <= 0) {
+                    $('.load_all_comments_'+message_id).hide();
+                }
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate(".moder_apply", "click", function(event){
+        event.preventDefault();
+        if($(this).hasClass('reject')) {
+            var action = 'reject';
+            var message = t("Вы хотите отклонить этого пользователя?");
+        } else {
+            var action = 'apply';
+            var message = t("Вы хотите принять этого пользователя?");
+        }
+        var answer = confirm(message);
+        if (answer){
+            var el = $(this);
+            var user_id = $(this).attr('rel');
+            var comm_id = $('#community_id').val();
+            var url = $(this).attr('href');
+            $.post(url,{user_id: user_id, comm_id: comm_id, action: action}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.parent().find('.moder_apply').hide();
+                } else {
+                    alert(resp.message);
+                }
+            });
+        }
+        return false;
+    });
+
+    $("body").delegate(".edit_folder", "click", function(event){
+        event.preventDefault();
+        var text = $(this).attr('rel');
+        var url = $(this).attr('href');
+        $.fancybox('<div class="pcf-container"><span><input style="width: 300px" type="edit" name="edit_folder_name" id="edit_folder_name" value="'+text+'" /></span></div><br>'+
+                   '<a id="save_gallery_name" href="'+url+'" ><span>'+t('Сохранить')+'</span></a>');
+        return false;
+    });
+
+    $("body").delegate("#save_gallery_name", "click", function(event){
+        event.preventDefault();
+        var text = $('#edit_folder_name').val();
+        var url = $(this).attr('href');
+        $.post(url,{text: text}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#gallery_'+resp.id).html(text);
+                $('#edit_gallery_a_'+resp.id).attr('rel', text);
+            }
+            $.fancybox.close();
+        });
+        return false;
+    });
+    
+    $("body").delegate("#change_folders", "change", function(event){
+        $('#move_image').show();
+    });
+    
+    $("body").delegate("#move_image", "click", function(event){
+        event.preventDefault();
+        var url = $(this).attr('href');
+        var folder_id = $('#change_folders').val();
+        $.post(url,{folder_id: folder_id}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#move_image').hide();
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate("#get_crop", "click", function(event){
+        event.preventDefault();
+        var x = jQuery('#x').val();
+        var y = jQuery('#y').val();
+        var w = jQuery('#w').val();
+        var h = jQuery('#h').val();
+        var message = t("Вы хотите обрезать картинку?");
+        var answer = confirm(message);
+        if (answer){
+            var image_id = $(this).attr('rel');
+            var url = $(this).attr('href');
+            $.post(url,{image_id: image_id, x: x, y: y, w: w, h: h}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    window.location.reload( true );
+                }
+            });
+        }
+        return false;
+    });
+
+    $("body").delegate(".set_ban", "click", function(event){
+        event.preventDefault();
+        if($(this).hasClass('delban')) {
+            var action = 'enabled';
+            var message = t("Вы хотите разбанить этого пользователя?");
+        } else {
+            var action = 'banned';
+            var message = t("Вы хотите забанить этого пользователя?");
+        }
+        var answer = confirm(message);
+        if (answer){
+            var el = $(this);
+            var user_id = $(this).attr('rel');
+            var comm_id = $('#community_id').val();
+            var url = $(this).attr('href');
+            $.post(url,{user_id: user_id, comm_id: comm_id, action: action}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.parent().parent().hide();
+                } else {
+                    alert(resp.message);
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("#leave-community").on("click", function() {
+        if (confirm($('#leave_community_prompt').val())){
+            $.post($(this).attr('rel'), {}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result === true) {
+                    window.location.replace(resp.url);
+                }
+            });
+        }
+        return false;
+    });
+    
+    $('body').delegate('.add-community-news', "click", function (event) {
+        event.preventDefault();
+        $('#current_page').val($(this).data('page_id'));
+        $('.news-form').removeClass('hidden');
+        return false;
+    });
+    
+    var comment_form = $('.comment-form');
+    // Отправка новой новости
+    $("body").delegate(".send-news", "click", function (event) {
+        event.preventDefault();
+        comment_form.data('yiiActiveForm').submitting = true;
+        comment_form.yiiActiveForm('validate');
+        var title = $('.titletext').val();
+        var content = $('.contenttext').val();
+        var page_id = $('#current_page').val();
+        var url = $(this).parents('form').attr("action");
+        if (confirm(messages)) {
+            $.post(url,{title: title, content: content, page_id: page_id}, function(resp) {
+                if (resp) {
+                    resp = JSON.parse(resp);
+                    if (page_action == 'community') {
+                        $('#community_page_content ul:first').prepend(resp.data);
+                        $('.titletext').val('');
+                        $('.contenttext').val('');
+                        $('.news-form').addClass('hidden');
+                        $('.add-news').removeClass('hidden');
+                    }
+                    if (page_action == 'news') {
+                        location.reload(true);
+                    }
+                }
+            });
+            console.log(event);
+        }
+
+    });
+    comment_form.on('beforeSubmit', function (event, messages, deferreds) {
+        return false;
+    });
+});
+
+/**
+ * Страница новостей
+ *
+ */
+/**
+ * Поле для добавление новости (скрытик при отправке )
+ */
+$('body').delegate('.add-news', 'click', function () {
+    $('.add-news').addClass('hidden');
+    $('.news-form').removeClass('hidden');
+});
+
+/**
+ * Кнопка для скрытия поля добавления новости
+ */
+
+$('body').delegate('.hide-news-input', 'click', function () {
+    event.preventDefault();
+    $('.add-news').removeClass('hidden');
+    $('.news-form').addClass('hidden');
+});
+
+/**
+ * Удаление одной новости
+ */
+$('body').delegate('.del-news', 'click', function (event) {
+    event.preventDefault();
+    var msg ='Вы действительно хотите удалить эту новость ?';
+    var url = $('#del_news_url').val();
+    var page_id = $('#current_page').val();
+    var id = event.currentTarget.rel;
+    if (confirm(msg)){
+        $.post(url,{page_id: page_id, id: id}, function () {
+            $('div[rel = '+ id +']').parent('li').remove();
+        });
+    }
+
+});
+
+
+/**
+ *
+ * Конец страници новостей
+ */
+
+function updateCoords(c)
+{
+    jQuery('#x').val(c.x);
+    jQuery('#y').val(c.y);
+    jQuery('#w').val(c.w);
+    jQuery('#h').val(c.h);
+};
+
+function getComments() {
+    $('.news_content_block').each(function() {
+        var news_id = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        if(news_id) {
+            var url = $('#data_news_comments_url').val();
+            $.post(url,{comm_id: comm_id, news_id : news_id}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    $('.comments_list_'+resp.news_id).html(resp.data).show();
+                    $('.countCommentsLeft_'+resp.news_id).val(resp.countCommentsLeft);
+                    $('.startLoadComment_'+resp.news_id).val(resp.start);
+                    if(resp.countCommentsLeft > 0) {
+                        $('.load_more_'+resp.news_id).show();
+                    } else {
+                        $('.load_more_'+resp.news_id).hide();
+                    }
+                }
+            });
+        }
+    });
+}
+
+/**
+ * Проверяет на роль пользователя
+ */
+function getComunityPageContent() {
+    $('.load_more').hide();
+    var page_id = $('#current_page').val();
+    var comm_id = $('#community_id').val();
+    var folder_id = $('#folder_id').val();
+    if(page_id) {
+        var url = $('#data_content_url').val();
+        $.post(url,{page_id : page_id, comm_id: comm_id, folder_id: folder_id}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+
+                $(".profile-links li a[rel = '"+page_id+"']").parent().addClass('active');
+                $('#current_page').val(resp.page_id);
+                $('#community_page_content').html(resp.data);
+                if (resp.role == 'creator'){
+                    $('.del-news').removeClass('hidden');
+                }
+
+            }
+        });
+    }
+}
+
+function getComunityList(type) {
+    var url = $('#getlistcommunities').val();
+    $("#comm-loading").show();
+    ajaxCounter++;
+    $.post(url,{type: type}, function(resp){
+        resp = $.parseJSON(resp);
+        if(resp.result == true) {
+            if(type == 'admins') {
+                if(resp.data != '') {
+                    $('.admins_communities').html(resp.data);
+                    $('.admins_communities').parent().show();
+                    $('.other_communities').parent().hide();
+                } else {
+                    $('.other_communities').parent().hide();
+                    $('.admins_communities').html('').parent().hide();
+                }
+            } else if(type == 'members') {
+                if(resp.data != '') {
+                    $('.members_communities').html(resp.data);
+                    $('.members_communities').parent().show();
+                    $('.other_communities').parent().hide();
+                } else {
+                    $('.other_communities').parent().hide();
+                    $('.members_communities').html('').parent().hide();
+                }
+            }
+            
+        }
+    }).always(function() {
+        ajaxCounter--;
+        if (ajaxCounter === 0) {
+            $("#comm-loading").hide();
+            if (!$('.admins_communities').parent().is(":visible") && !$('.members_communities').parent().is(":visible")) {
+                $('#community_nothing_was_found').show();
+            } else {
+                $('#community_nothing_was_found').hide();
+            }
+        }
+    });
+}

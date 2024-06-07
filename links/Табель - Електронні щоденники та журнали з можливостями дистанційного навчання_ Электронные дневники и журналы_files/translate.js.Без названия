@@ -1,0 +1,7 @@
+function t(s) {
+    if (typeof translates === 'undefined' || typeof translates[s] === 'undefined' || translates[s] === null) {
+        return s;
+    } else {
+        return translates[s];
+    }
+}

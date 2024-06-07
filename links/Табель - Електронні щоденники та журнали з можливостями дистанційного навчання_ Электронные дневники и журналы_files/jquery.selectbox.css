@@ -1,0 +1,72 @@
+@CHARSET "UTF-8";
+
+.jquery-selectbox {
+	position: relative;
+	height: 25px;
+	width: 100px;
+	z-index: 0;
+	float: left;
+	display: inline;
+	margin: 0 8px 0 0;
+	font-size: 12px;
+	color: #444;
+	padding: 0;
+	background: url("../images/custom-select.png") no-repeat;
+}
+.jquery-selectbox.selecthover {
+	z-index: 700;
+}	
+.jquery-selectbox .jquery-selectbox-currentItem {
+	padding: 0 0 0 11px;
+	white-space: nowrap;
+	display: block;
+	overflow: hidden;
+        line-height: 25px
+}
+
+.jquery-selectbox .jquery-selectbox-list {
+	display: none;
+	position: absolute;
+	top: 25px;
+	left: 0px;
+	background: #fff;
+	width: 100px;
+	height: auto!important;
+	overflow-x: hidden;
+	overflow-y: auto;
+	z-index: 1000;
+	border: 1px solid #ccc;
+}
+.jquery-selectbox .jquery-selectbox-moreButton {
+	/*
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	*/
+	float: right;
+	width: 25px;
+	height: 25px;
+	cursor: pointer;
+}
+.jquery-selectbox .jquery-selectbox-moreButton.morebuttonhover {
+
+}
+
+.jquery-selectbox .jquery-selectbox-item.listelementhover {
+	background: #f5f5f5;
+	color: #000;
+}
+.jquery-selectbox .jquery-selectbox-item {
+	display: block;
+	cursor: default;
+        line-height: 20px;
+        padding: 0 11px;
+        color: #666;
+        white-space: nowrap
+}
+
+/** ERROR classes **/
+form .error .jquery-selectbox {
+	color: #d00;
+	border-color: #d00
+}

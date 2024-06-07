@@ -1,0 +1,10 @@
+.scroll_button {
+    width:40px;
+    height:40px;
+    opacity:0.5;
+    position:fixed;
+    bottom:50px;
+    right:50px;
+    display:none;
+    background: url('../images/icon_top.png') no-repeat;
+}

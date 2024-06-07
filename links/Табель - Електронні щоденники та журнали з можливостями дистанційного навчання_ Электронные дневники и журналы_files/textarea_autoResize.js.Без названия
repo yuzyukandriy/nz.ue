@@ -1,0 +1,7 @@
+$(document).ready(function(){
+    $('textarea').autoResize({
+        extraSpace: 10,
+        animate: 500,
+        minHeight: 30
+    });
+});

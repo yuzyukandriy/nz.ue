@@ -1,0 +1,179 @@
+var busy_search = false;
+$(document).ready(function(){
+    $("body").on("click", ".invite", function(event){
+        event.preventDefault();
+        var el = $(this);
+        var url = $(this).attr('href');
+        var user_id = $(this).attr('rel');
+        var comm_id = $('#community_id').val();
+        $.post(url,{comm_id: comm_id, user_id: user_id}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                el.hide();
+            } else {
+                alert(resp.error);
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate(".get_my_users", "click", function(event){
+        event.preventDefault();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $('#load_more').hide();
+        $('#type_search').val($(this).attr('rel'));
+        search();
+        return false;
+    });
+    
+    $("#user-search-form").submit(function(event){
+        event.preventDefault();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $('#load_more').hide();
+        $('#type_search').val('');
+        search();
+        return false;
+    });
+    
+    $("body").delegate("#load_more", "click", function(event){
+        event.preventDefault();
+        search();
+        return false;
+    });
+    
+    $("body").delegate("#search_str", "change", function(event){
+        event.preventDefault();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $('#load_more').hide();
+        return false;
+    });
+    
+    $("body").delegate("#region", "change", function(event){
+        event.preventDefault();
+        var region = $(this).val();
+        var type = 'region';
+        var url = $('#get_address').val();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $.post(url,{address: region, type: type}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#area').html('');
+                $('#city').html(selectOptions['city']);
+                $('#school').html(selectOptions['school']);
+                $('#class').html(selectOptions['class']);
+                $('#area').html(resp.data);
+            }
+        });
+        return false;
+    });
+    $("body").delegate("#area", "change", function(event){
+        event.preventDefault();
+        var region = $(this).val();
+        var type = 'area';
+        var url = $('#get_address').val();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $.post(url,{address: region, type: type}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#city').html('');
+                $('#school').html(selectOptions['school']);
+                $('#class').html(selectOptions['class']);
+                $('#city').html(resp.data);
+            }
+        });
+        return false;
+    });
+    $("body").delegate("#city", "change", function(event){
+        event.preventDefault();
+        var region = $(this).val();
+        var type = 'city';
+        var url = $('#get_address').val();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $.post(url,{address: region, type: type}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#school').html('');
+                $('#class').html(selectOptions['class']);
+                $('#school').html(resp.data);
+            }
+        });
+        return false;
+    });
+    $("body").delegate("#school", "change", function(event){
+        event.preventDefault();
+        var region = $(this).val();
+        var type = 'school';
+        var url = $('#get_address').val();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $.post(url,{address: region, type: type}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#class').html('');
+                $('#class').html(resp.data);
+            }
+        });
+        return false;
+    });
+    $("body").delegate("#class", "change", function(event){
+        event.preventDefault();
+        $('#offset').val(0);
+        $('#user_content').html('');
+        $('#load_more').hide();
+        $('#type_search').val('');
+        search();
+        return false;
+    });
+    $("#select-search-soobsh select").on("change",function(event){
+        $("#search_str").val('');
+        $('.founded').hide();
+    });
+});
+
+function search() {
+    if(busy_search) return false;
+    $('#count_users').html('0');
+    busy_search = true;
+    $('#first_load').remove();
+    $('.founded').hide();
+    $('.psl-menu li').removeClass('active');
+    var url = $('#search_url').val();
+    var type = $('#type_search').val();
+    if(type == 'classmates') $('.li_classmates').addClass('active');
+    if(type == 'friends') $('.li_friends').addClass('active');
+    var comm_id = $('#community_id').val();
+    var search_str = $('#search_str').val();
+    var region = $('#region').val();
+    var area = $('#area').val();
+    var city = $('#city').val();
+    var school = $('#school').val();
+    var class_id = $('#class').val();
+    var offset = $('#offset').val();
+    var user_per_load = Number($('#user_per_load').val());
+    $('#offset').val(Number($('#offset').val())+user_per_load);
+    $("#comm-loading").show();
+    $.post(url,{search_str: search_str, type: type, region: region, city: city, area: area, school: school, class_id: class_id, offset: offset, comm_id: comm_id}, function(resp){
+        $("#comm-loading").hide();
+        resp = $.parseJSON(resp);
+        $('.founded').show();
+        if(resp.result == true) {
+            $('#user_content').append(resp.data);
+            $('#count_users').html(resp.count);
+            if(resp.count <= $("#user_content li").length) {
+                $('#load_more').hide();
+            } else {
+                $('#load_more').show();
+            }
+        } else {
+            $('#count_users').html('0');
+        }
+        busy_search = false;
+    });
+}
+

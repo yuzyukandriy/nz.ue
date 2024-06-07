@@ -1,0 +1,116 @@
+$(document).ready(function(){
+    $(document).delegate('a.modal-box-upload', 'click', function(e){
+        e.preventDefault();
+        $.fancybox($(this),{href:$(this).attr('href'), ajax:{data:{folder_id:$(this).attr('rel')}}});
+    });
+    $(document).delegate('#select_folder_for_new', 'change', function(e){
+        $('a.modal-box-upload').attr('rel', $(this).val());
+    });
+    $(document).delegate('a.modal-box-crop', 'click', function(e){
+        e.preventDefault();
+        $.fancybox($(this),{href:$(this).attr('href')});
+    });
+    $(document).delegate('#crop_image', 'click', function(e){
+        e.preventDefault();
+        var x = jQuery('#x').val();
+        var y = jQuery('#y').val();
+        var w = jQuery('#w').val();
+        var h = jQuery('#h').val();
+        var type = $('#type_upload_image').val();
+        var filename = $('#upload_filename').val();
+        var comm_id = $('#comm_id_upload_image').val();
+        var folder_id = $('#folder_id_upload_image').val();
+        var page_id = $('#page_id_upload_image').val();
+        var message = t("Вы хотите обрезать картинку?");
+        var answer = confirm(message);        
+        //var data = $(this).parents('form').serialize();
+        var data = {
+                image_id: image_id, 
+                x: x, y: y, w: w, h: h, 
+                type: type, 
+                filename: filename, 
+                comm_id: comm_id, 
+                page_id: page_id, 
+                folder_id: folder_id
+            };
+        if (answer){
+            var image_id = $(this).attr('rel');
+            var url = $(this).attr('href');
+            $.post(url, data, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    window.location.reload( true );
+                }
+            });
+        }
+    });
+});
+
+
+function ajaxFileUploadImage()
+{
+    if($('#fileToUploadImage').val() == '') {
+        $('#fileToUploadImage').css('border', 'solid red 1px');
+        return false;
+    }
+    //starting setting some animation when the ajax starts and completes
+    $("#loading")
+    .ajaxStart(function(){
+        $(this).show();
+    })
+    .ajaxComplete(function(){
+        $(this).hide();
+    });
+    /*
+        prepareing ajax file upload
+        url: the url of script file handling the uploaded files
+                    fileElementId: the file type of input element id and it will be the index of  $_FILES Array()
+        dataType: it support json, xml
+        secureuri:use secure protocol
+        success: call back function when the ajax complete
+        error: callback function when the ajax failed
+       
+     */
+    $.ajaxFileUpload
+    (
+        {
+            url: global_urls['post-image'],
+            secureuri:false,
+            fileElementId:'fileToUploadImage',
+            dataType: 'json',
+            data:{type: $('#type_upload_image').val(), _csrf : $('meta[name="csrf-token"]').attr("content")},
+            success: function (data, status, xhr)
+            {
+                if(data.result == true) {
+                    $('#imagecrop').css('visibility', 'hidden').attr('src', data.url).on('load', function(){                        
+                        $('.i-upload').hide();                        
+                        $('.i-crop').show();
+                        $.fancybox($("#fancybox-content > div").html(), {onComplete: function(){
+                                $('#imagecrop').Jcrop({
+                                    bgColor:     'black',
+                                    bgOpacity:   .4,
+                                    setSelect:   [0, 0, 200, 200],
+                                    allowSelect: false,
+                                    minSize:     [200, 200],
+                                    onSelect: updateCoords,
+                                    aspectRatio: 1
+                                });
+                        }, hideOnOverlayClick: false}); 
+                        $("#imagecrop").css('visibility', 'visible');
+                        
+                    });                    
+                 
+                    $('#upload_filename').val(data.filename);
+                } else {
+                    alert(data.error);
+                }
+            },
+            error: function (data, status, e)
+            {
+                alert(e);
+            }
+        }
+    );
+   
+    return false;
+}

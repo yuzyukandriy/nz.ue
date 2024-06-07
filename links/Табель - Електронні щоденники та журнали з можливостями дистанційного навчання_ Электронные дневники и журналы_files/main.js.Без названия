@@ -1,0 +1,217 @@
+$(document).ready(function(){
+    // Для landing-page
+    if ($(".wrapper").hasClass('lp-wrapper')) {
+        // Аккардион
+        $('.slider__label').click(function () {
+            $(this).parents(".slider").children('.slider__item--open').removeClass('slider__item--open');
+            $(this).parent().toggleClass('slider__item--open');
+            // Если в аккардионе надо менять img
+            if ($(this).parent().find('img').length) {
+                $('.lp-looks__img').empty();
+                $(this).parent().find('img').clone().appendTo('.lp-looks__img').show();
+            }
+        });
+        // Для popup
+        $('.js--login-close').click(function () {
+            $('.login').removeClass('login--show');
+        });
+        $('.js--login-popup-open').click(function () {
+            $('.js--login-popup').addClass('login--show');
+        });
+        $('.js--forgot-popup-open').click(function () {
+            $('.js--login-popup').removeClass('login--show');
+            $('.js--forgot-popup').addClass('login--show');
+        });
+    }
+    //Для построителя сайтов, если указали не правильный субдомен
+    if (typeof redirectToMain !== 'undefined' && redirectToMain) {
+        setTimeout(function () {
+            document.location.href = '//nz.ua';
+        }, 5000);
+    }
+//----------------------------------------------------------------------------------------------------------------------
+    //Текст подсказка в мемках и инпутах
+    $("body").delegate("input[title], textarea[title]", "focus blur", function(e){
+        if (e.type == 'focus') {
+            if ($(this).attr('title') == $(this).val()) {
+                $(this).val('');
+            }
+        }else{
+            if ($(this).val() == '') {
+                $(this).val($(this).attr('title'));
+            }
+        }
+    });
+//----------------------------------------------------------------------------------------------------------------------
+    if (!$(".content-wrapper").hasClass("schedule")) {
+        // Messages Tabs
+        var msgNavLinks = $('.mph-nav li a'),
+        msgTabs = $('.mp-tabs > li');
+        msgNavLinks.each(function(index, item) {
+            $(item).click(function(e) {
+    //            e.preventDefault();
+                if (!$(this).hasClass('active')) {
+                    msgNavLinks.parent().removeClass('active');
+                    msgTabs.removeClass('active');
+                    $(msgTabs[index]).addClass('active');
+                    $(this).parent().addClass('active');
+                }
+            });
+        });
+    }
+    // Delete Messages
+    $("body").delegate(".ml-message", "mouseover", function(e){
+        $(this).find('.delete-message').show();
+    });
+    $("body").delegate(".ml-message", "mouseout", function(e){
+        $(this).find('.delete-message').hide();
+    });
+    
+    
+    // Select Customization
+//    $('.custom-select, .custom-select-160').selectbox({
+//        animationSpeed: 0,
+//        replaceInvisible: true
+//    });
+    
+    // Table hover
+    $('.journal-choose tr').hover(function() {
+        $(this).addClass('tr-hover');
+    }, function() {
+        $(this).removeClass('tr-hover');
+    });
+    $('.schedule-item').hover(function() {
+        $(this).addClass('si-hover');
+    }, function() {
+        $(this).removeClass('si-hover');
+    });
+    
+    $('.point-table td.pt-point input').focus(function() {
+        $(this).parents('td').addClass('pt-input');
+    });
+    $('.point-table td.pt-point input').blur(function() {
+        $(this).parents('td').removeClass('pt-input');
+    });
+    
+    // Points table
+    $('.point-table.pt-teacher tbody tr td.pt-point > span').click(function(e) {
+        e.preventDefault();
+    });
+    
+    // Tooltips
+    $('.tooltip').each(function(index, item) {
+        $(item).parent().hover(function() {
+            $('.tooltip', $(this)).fadeIn(200);
+        }, function() {
+            $('.tooltip', $(this)).fadeOut(200);
+        });
+    });
+    
+    // Schooll Gallery
+    if ($(".school-gallery a").length) {
+        $(".school-gallery a").fancybox();
+    }
+    
+    // Отображение подсказок
+    var firstLink = $('.senior [data-toggle="tooltip"]').first();
+    $('.senior [data-toggle="tooltip"]').tooltip();
+    firstLink.tooltip('open');
+    setTimeout(function () {
+        firstLink.tooltip('close');
+    }, 2000);
+    $('[data-toggle="tooltip"]').tooltip();
+//    $('.wg-birth').hide();
+    //
+    $('.show-more-birth').click(function() {
+        $('.wg-birth li.hidden').removeClass('hidden');
+        $(this).hide();
+        return false;
+    });
+    
+    $('.menu-default-index .open-modal').click(function() {
+        var link = $(this);
+
+        $.post(link.attr('value'), function(data) {
+            $('.modal').modal('show').find('#modelContent').html( data );
+        });
+        return false;
+    });    
+    
+    // Отображение блока с пользователями которые просмотрели новость
+    $("body").delegate('.user-list-show', "click", function() {
+        var popup = $(this).parent().parent().find(".user-list-popup");
+        $(".user-list-popup").hide();
+        if ($(this).offset().top + popup.height() > $(document).height()) {
+            popup.css("top", (50 - popup.height()) + 'px');
+        } else {
+            popup.css("top", "90%");
+        }
+        popup.show();
+        
+        return false;
+    });
+    $(document).delegate("body", "click", function() {
+        $(this).parent().parent().find(".user-list-popup").hide();
+    });
+
+    function lowvision()
+    {
+        var fontOption = void 0;
+
+
+        function plusFontSize() {
+            return fontOption++;
+        }
+
+        function minusFontSize() {
+            return fontOption--;
+        }
+
+        function checkFont() {
+            if (document.body.classList.contains('visually-impaired')) { //visually-impaired
+                localStorage.setItem('fontSize',fontOption);
+            } else {
+                localStorage.setItem('fontSize',0);
+                fontOption=0;
+            }
+            if (fontOption===0) {
+                $('body').css('font-size','');
+                $('.js_font_minus').addClass('font-btn-dis');
+            } else if (fontOption===1) {
+                $('body').css('font-size','14px');
+                $('.js_font_minus').removeClass('font-btn-dis');
+            } else if (fontOption===2) {
+                $('body').css('font-size','18px');
+                $('.js_font_minus').removeClass('font-btn-dis');
+            } else if (fontOption===3) {
+                $('body').css('font-size','20px');
+                $('.js_font_minus').removeClass('font-btn-dis');
+            } else if (fontOption===4) {
+                $('body').css('font-size','22px');
+                $('.js_font_plus').addClass('font-btn-dis');
+                $('.js_font_minus').removeClass('font-btn-dis');
+            }
+        }
+
+        if (localStorage.getItem('fontSize')===null) {
+            localStorage.setItem('fontSize',0);
+        } else {
+            fontOption=Number(localStorage.getItem('fontSize'));
+            checkFont();
+        }
+
+        $('.js_font_minus').click(function() {
+            minusFontSize();
+            checkFont();
+            $('.js_font_plus').removeClass('font-btn-dis');
+        });
+
+        $('.js_font_plus').click(function() {
+            plusFontSize();
+            checkFont();
+            $('.js_font_minus').removeClass('font-btn-dis');
+        });
+
+    }
+    lowvision();
+});

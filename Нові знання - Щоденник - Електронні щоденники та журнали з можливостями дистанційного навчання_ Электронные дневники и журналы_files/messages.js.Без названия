@@ -1,0 +1,750 @@
+$(document).ready(function(){
+
+    // Comment Forms
+    $("body").delegate(".comment-button", "click", function(e){
+        e.preventDefault();
+        news.showHideCommentsForm($(this));
+    });    
+    
+    var click = false;
+
+    $("body").delegate(".send_personal_message", "click", function(event){
+        event.preventDefault();
+        var send_to = $(this).attr('rel');
+        var message = $('.personal_message_text').val();
+        var readOnePage = $('#readOnePage').val();
+        if(readOnePage == 1) {
+            var header = 'Re: '+$('.personal_message_header').val();
+        } else {
+            var header = $('.personal_message_header').val();
+        }
+        if((message.length == 0) || (header.length == 0) || (message == $('.personal_message_text').attr('title'))) {
+            alert(t('Введите тему и сообщение'));
+            return false;
+        }
+        if(message.length > 420) {
+            alert(t('Сообщение слишком длинное'));
+            return false;
+        }
+        var url = $(this).attr('href');
+        $.post(url,{send_to:send_to, message: message, header: header}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $("#fancybox-close").click();
+                if(readOnePage == 1) {
+                    $('.personal_message_text').val('').blur().keyup();
+                    $('.messages-page').prepend('<div class="alert alert-success" role="alert">' + resp.msg + '</div>');
+                } else {
+                    if($('#folder').val() == 'outbox') {
+                        $('.folder_'+$('#folder').val()).click();
+                    }
+                }
+            } else {
+                $('.messages-page').prepend('<div class="alert alert-danger" role="alert">' + resp.msg + '</div>');
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate(".select_message", "click", function(event){
+        var type = $(this).parent().parent().parent().parent().parent().attr('rel');
+        if(type == 'folder_inbox') {
+            if($('#list_messages_inbox').find('input[type=checkbox]:checked').length > 0) {
+                $('#incomming-buttons a').removeClass('disabled');
+            } else {
+                $('#incomming-buttons a').addClass('disabled');
+            }
+        }
+        if(type == 'folder_outbox') {
+            if($('#list_messages_outbox').find('input[type=checkbox]:checked').length > 0) {
+                $('#outgoing-buttons a').removeClass('disabled');
+            } else {
+                $('#outgoing-buttons a').addClass('disabled');
+            }
+        }
+        if(type == 'folder_deleted') {
+            if($('#list_messages_deleted').find('input[type=checkbox]:checked').length > 0) {
+                $('#recicle-buttons a').removeClass('disabled');
+            } else {
+                $('#recicle-buttons a').addClass('disabled');
+            }
+        }
+    });
+    
+    $("body").delegate("#list_messages .setdelete", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите удалить это сообщение?"));
+        var el = $(this);
+        var url = $(this).attr('href');
+        if (answer){
+            var message_id = $(this).attr('rel');
+            $.post(global_urls.deleteprivatemessage,{message_id: message_id, type: 'delete'}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    if(resp.comment_delete) {
+                        $('.folder_'+$('#folder').val()).click();
+                    }
+                    window.location = url;
+                }
+            });
+        }
+        return false;
+    });
+
+    $("body").delegate(".goto_message_folder", "click", function(event){
+        event.preventDefault();
+        window.location = $(this).attr('href');
+        return false;
+    });
+    
+    $("body").delegate(".external_link", "click", function(event){
+        event.preventDefault();
+        window.location = $(this).attr('href');
+        return false;
+    });
+    
+    $("body").delegate(".goto_admin_folder", "click", function(event){
+        event.preventDefault();
+        window.location = $(this).attr('href');
+        return false;
+    });
+    
+    $("body").delegate(".get_folder", "click", function(event){
+        event.preventDefault();
+        var url = $(this).attr('href');
+        $.post(url,{}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#list_messages_inbox').html('');
+                $('#list_messages_outbox').html('');
+                $('#list_messages_deleted').html('');
+                $('#list_messages_'+resp.folder).html(resp.data);
+                $('#folder').val(resp.folder);
+                $('#page').val(resp.page);
+                var paginator = makePaginator(resp.page, resp.page_count, resp.messagesPrePage, resp.countAllMessages, resp.folder);
+                $('.mp-paginator').html(paginator);
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate(".add_friend_request", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите отправить запрос на дружбу?"));
+        var el = $(this);
+        if (answer){
+            var friend = $(this).attr('rel');
+            $.post(global_urls.addfriendrequest,{friend_id: friend}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.remove();
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate(".add_friend", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите добавить друга?"));
+        var el = $(this);
+        if (answer){
+            var request_id = $(this).attr('rel');
+            $.post(global_urls.addfriend,{request_id: request_id}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.remove();
+                }
+                location.reload(true);
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate(".delete_friend", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите удалить этого человека из друзей?"));
+        var el = $(this);
+        if (answer){
+            var friend = $(this).attr('rel');
+            $.post(global_urls.deletefriend,{friend_id: friend}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.parent().parent().remove();
+                }
+                location.reload(true);
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate(".reject_friend_request", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите отклонить заявку на дружбу?"));
+        var el = $(this);
+        if (answer){
+            var request_id = $(this).attr('rel');
+            $.post(global_urls.rejectfriendrequest, {request_id: request_id}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.parent().parent().remove();
+                }
+                location.reload(true);
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate(".delete_friend_request", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите удалить заявку?"));
+        var el = $(this);
+        if (answer){
+            var request_id = $(this).attr('rel');
+            $.post(global_urls.deletefriendrequest, {request_id: request_id}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    el.parent().parent().remove();
+                }
+                location.reload(true);
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate("#list_messages .delete", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите удалить это сообщение без возможности восстановления?"));
+        var el = $(this);
+        var url = $(this).attr('href');
+        if (answer){
+            var message_id = $(this).attr('rel');
+            $.post(global_urls.deleteprivatemessage,{message_id: message_id, type: 'delete_forever'}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    if(resp.comment_delete) {
+                        $('.folder_'+$('#folder').val()).click();
+                    }
+                    window.location = url;
+//                    el.parent().remove();
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate("#list_messages .setundelete", "click", function(event){
+        event.preventDefault();
+        var answer = confirm(t("Вы хотите восстановить это сообщение?"));
+        var el = $(this);
+        var url = $(this).attr('href');
+        if (answer){
+            var message_id = $(this).attr('rel');
+            $.post(global_urls.deleteprivatemessage,{message_id: message_id, type: 'undelete'}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    if(resp.comment_delete) {
+                        $('.folder_'+$('#folder').val()).click();
+                    }
+                    window.location = url;
+//                    el.parent().remove();
+                }
+            });
+        }
+        return false;
+    });
+
+    $("body").delegate(".cancel_personal_message", "click", function(event){
+        event.preventDefault();
+        $("#fancybox-close").click();
+        return false;
+    });
+
+    $('.news_parent_id').each(function() {
+        var id = $(this).val();
+        var start = 0;
+        $.post(global_urls.getnextcomments,{message_id: id, start: start, 'page': 'news'}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#wall_'+id).append(resp.data);
+                $('.left_comments_'+id).val(resp.commentsLeft);
+                $('.last_comments_'+id).val(resp.start);
+                if(resp.commentsLeft > 0) {
+                    $('.load_all_comments_news_'+id).show();
+                }
+            }
+        });
+        
+    });
+    
+    /**
+    * Кнопка подгрузки комментариев.
+    * 
+    */
+    $("body").delegate(".load_all_comments_news", "click", function(event){
+        event.preventDefault();
+        var target = $(this);
+        news.fillComments(target, target.attr('rel'), target.attr('lastComment'));
+
+        return false;
+    });
+    
+
+
+    $("body").delegate(".send_message_wall", "click", function(event){
+        event.preventDefault();
+        return news.sendMessage($(this));
+    });
+    
+    $("body").delegate(".load_all_messages", "click", function(event){
+        event.preventDefault();
+        var countLeft = $(this).attr('rel');
+        var wall_id = $('#wall_id').val();
+        $.post(global_urls.getnextmessages,{wall_id: wall_id, start: countLeft}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $('#list_wall_messages').append(resp.data);
+            }
+            if(resp.leftMessages > 0) {
+                $('.load_all_messages').attr('rel', resp.lastMessages);
+            } else $('.load_all_messages').hide();
+        });
+        return false;
+    });
+    
+    /**
+    * Подгружает новости
+    * 
+    */
+    $("body").delegate(".load_all_news", "click", function(event){
+        event.preventDefault();
+        var lastNews = $(this)
+        news.fillNews(lastNews);
+        return false;
+    });
+    
+    $("body").delegate(".load_all_comments", "click", function(event){
+        event.preventDefault();
+        var message_id = $(this).attr('rel');
+        var start = $('.last_comments_'+message_id).val();
+        $.post(global_urls.getnextcomments,{message_id: message_id, 'start': start, 'page': 'wall'}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                var message_id = resp.message_id;
+                $('#list_comment_'+message_id).append(resp.data);
+                $('.left_comments_'+message_id).val(resp.commentsLeft);
+                $('.last_comments_'+message_id).val(resp.start);
+                if(resp.commentsLeft <= 0) {
+                    $('.load_all_comments_'+message_id).hide();
+                }
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate("#list_wall_messages .delete, .messages-list .delete", "click", function(event){
+        event.preventDefault();
+        return news.removeComment($(this));
+    });
+    
+    $("body").delegate(".reply", "click", function(event){
+        event.preventDefault();
+//        var id = $(this).attr('rel');
+//        $("#container_reply_"+id).show();
+//        $(".message_text_"+id).val('');
+//        $(".message_text_"+id).show().focus();
+        return false;
+    });
+    
+    $("body").delegate(".cancel_message_wall", "click", function(event){
+        event.preventDefault();
+        var id = $(this).attr('rel');
+        $('.reply_'+id).show();
+        $("#container_reply_"+id).hide();
+        return false;
+    });
+
+    $("body").delegate(".set_read_all", "click", function(event){
+        event.preventDefault();
+        if($(this).hasClass('disabled')) return false;
+        var arr = new Array();
+        var ind = 0;
+        var el = $(this);
+        $(".mp-tabs").find("input:checked").each(function()
+        {
+            arr[ind] = $(this).attr('rel');
+            ind++;
+        });
+        
+        if(ind == 0) {
+            alert(t('Ничего не выделено'));
+            return false;
+        }
+        var url = $(this).attr('href');
+        $.post(url,{ids: arr, type: 'read'}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $.each(arr, function(i, item) {
+                    $('.state_read_'+item).removeClass('not-read');
+                });
+                $(".mp-tabs").find("input:checkbox:checked").removeAttr('checked');
+            }
+        });
+        return false;
+    });
+
+    $("body").delegate(".setundelete_all", "click", function(event){
+        event.preventDefault();
+        if($(this).hasClass('disabled')) return false;
+        var arr = new Array();
+        var ind = 0;
+        var el = $(this);
+        $(".mp-tabs").find("input:checked").each(function()
+        {
+            arr[ind] = $(this).attr('rel');
+            ind++;
+        });
+        
+        if(ind == 0) {
+            alert(t('Ничего не выделено'));
+            return false;
+        }
+        var url = $(this).attr('href');
+        var answer = confirm(t("Вы хотите восстановить эти сообщения?"));
+        if (answer){
+            $.post(url,{ids: arr, type: 'undelete'}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    $('.folder_'+$('#folder').val()).click();
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate(".delete_all_forever", "click", function(event){
+        event.preventDefault();
+        if($(this).hasClass('disabled')) return false;
+        var arr = new Array();
+        var ind = 0;
+        var el = $(this);
+        $(".mp-tabs").find("input:checked").each(function()
+                {
+            arr[ind] = $(this).attr('rel');
+            ind++;
+                });
+        
+        if(ind == 0) {
+            alert('Ничего не выделено');
+            return false;
+        }
+        var url = $(this).attr('href');
+        var answer = confirm(t("Вы хотите удалить эти сообщения без возможности восстановления?"));
+        if (answer){
+            $.post(url,{ids: arr, type: 'delete_forever'}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    $('.folder_'+$('#folder').val()).click();
+                }
+            });
+        }
+        return false;
+    });
+    
+    $("body").delegate("#incomming_filter", "click", function(event){
+        if($(this).is(':checked')) {
+            $("#list_messages_inbox").find("input:checkbox").attr('checked', 'checked');
+            $('#incomming-buttons a').removeClass('disabled');
+        } else {
+            $("#list_messages_inbox").find("input:checkbox").removeAttr('checked');
+            $('#incomming-buttons a').addClass('disabled');
+        }
+    });
+    
+    $("body").delegate("#outgoing_filter", "change", function(event){
+        if($(this).is(':checked')) {
+            $(".mp-tabs").find("input:checkbox").attr('checked', 'checked');
+            $('#outgoing-buttons a').removeClass('disabled');
+        } else {
+            $(".mp-tabs").find("input:checkbox").removeAttr('checked');
+            $('#outgoing-buttons a').addClass('disabled');
+        }
+    });
+    
+    $("body").delegate("#recicle_filter", "change", function(event){
+        if($(this).is(':checked')) {
+            $(".mp-tabs").find("input:checkbox").attr('checked', 'checked');
+            $('#recicle-buttons a').removeClass('disabled');
+        } else {
+            $(".mp-tabs").find("input:checkbox").removeAttr('checked');
+            $('#recicle-buttons a').addClass('disabled');
+        }
+    });
+    
+    $("body").delegate(".set_notread_all", "click", function(event){
+        event.preventDefault();
+        if($(this).hasClass('disabled')) return false;
+        var arr = new Array();
+        var ind = 0;
+        var el = $(this);
+        $(".mp-tabs").find("input:checked").each(function()
+        {
+            arr[ind] = $(this).attr('rel');
+            ind++;
+        });
+        if(ind == 0) {
+            alert(t('Ничего не выделено'));
+            return false;
+        }
+        var url = $(this).attr('href');
+        $.post(url,{ids: arr, type: 'notread'}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.result == true) {
+                $.each(arr, function(i, item) {
+                    $('.state_read_'+item).addClass('not-read');
+                });
+                $(".mp-tabs").find("input:checked").removeAttr('checked');
+            }
+        });
+        return false;
+    });
+    
+    $("body").delegate(".delete_all", "click", function(event){
+        event.preventDefault();
+        if($(this).hasClass('disabled')) return false;
+        var arr = new Array();
+        var ind = 0;
+        var el = $(this);
+        $(".mp-tabs").find("input:checked").each(function()
+        {
+            arr[ind] = $(this).attr('rel');
+            ind++;
+        });
+        if(ind == 0) {
+            alert(t('Ничего не выделено'));
+            return false;
+        }
+        var url = $(this).attr('href');
+        var answer = confirm(t("Вы хотите удалить эти сообщения?"));
+        var el = $(this);
+        if (answer){
+            var message_id = $(this).attr('rel');
+            $.post(url,{ids: arr, type: 'delete'}, function(resp){
+                resp = $.parseJSON(resp);
+                if(resp.result == true) {
+                    $('.folder_'+$('#folder').val()).click();
+                }
+            });
+        }
+        return false;
+    });
+
+    $("body").delegate(".pmf-message, .cf-message", "keyup", function(event){
+        event.preventDefault();
+        if(($(this).val() == '') || ($(this).val() == $(this).attr('title'))) {
+            $(this).next().hide();
+        } else {
+            $(this).next().show();
+        }
+        return false;
+    });
+
+});
+
+function makePaginator(page, countPage, perPage, countMessages, folder) {
+    var text = '';
+    var url = $('#ulr_for_load_messages').val();
+    if(Number(page) > 1) {
+        text = text + '<a class="prev-page get_folder" title="Пред.стр." href="' + url + '?folder='+folder+'&page='+(Number(page)-1)+'"></a>';
+    }
+    var first = Number(perPage * (page-1)) + 1;
+    if(first < 0) return '';
+    var last = Number(first + perPage) - 1;
+    if(last > countMessages) 
+        last = countMessages;
+    text = text + first + ' - ' + last + ' из ' + countMessages;
+    if(page < countPage) {
+        text = text + '<a class="next-page get_folder" title="След.стр." href="' + url + '?folder='+folder+'&page='+(Number(page)+1)+'"></a>';
+    }
+    return text;
+}
+
+
+news = {
+    /**
+    * Хранит флаги загрузки(нельзя продолжать загрузку пока флаг есть и он равен false)
+    * id парента => true|false
+    * @type Object
+    */
+    flagsLoad: {},
+    /**
+    * заполняет комментарии
+    * 
+    * @param JQUERY OBJECT target 
+    * @param int parentId
+    * @param int lastComment
+    * 
+    * @returns {Boolean}
+    */
+    fillComments: function(target, parentId, lastComment){
+        if(parentId in this.flagsLoad && false == this.flagsLoad[parentId]){
+            return false;
+        }
+        this.flagsLoad[parentId] = false;
+        lastComment = lastComment || 0;
+        var obj = this;
+        var params = {parentid:   parentId, lastcomment: lastComment, page: 'wall'};
+        $.post(global_urls.getnextcomments, params, function(resp){
+                    resp = $.parseJSON(resp);
+                    if(!('tpl' in resp)){
+                        return;
+                    }
+                    target.attr('lastComment', resp.lastComment);
+                    $('#wall_' + parentId).append(resp.tpl);
+                    if(0 == resp.lastComment) {
+                        target.hide();
+                    }else{
+                        target.show();
+                        obj.flagsLoad[parentId] = true;
+                    }
+        });
+    },
+    
+    /**
+    * Заполнить новостями область
+    * 
+    * @param lastNews
+    */
+    fillNews: function(lastNews){
+        var obj = this;
+        var url = lastNews.attr('href');
+        var csrfToken = $('meta[name="csrf-token"]').attr("content");
+        $.post(url, {lastnews: lastNews.attr('lastNews'), _csrf : csrfToken}, function(resp){
+            resp = $.parseJSON(resp);
+            if(resp.lastNews > 0){
+                lastNews.attr('lastNews', resp.lastNews);
+                lastNews.show();
+            }else{
+                lastNews.hide();
+            }
+
+            $('.news_container').append(resp.data);
+            lastNews.waypoint({offset: function() {
+                                        return $.waypoints('viewportHeight') - $(this).outerHeight();
+            }});
+
+            //Заполняем новости комментариями
+            var newsId = resp.newsId;
+            for(var i in newsId){
+                obj.fillComments($('.load_all_comments_news_' + newsId[i]), newsId[i], 0);
+            }
+        }, 'json');
+    },
+    
+    /**
+    * Показать|Скрыть форму с комментарием.
+    * 
+    * @param JQUERY OBJECT target
+    * @param formId
+    */
+    showHideCommentsForm: function(target){
+        var commentForm = $('#container_reply_' + target.attr('rel'));//$_this.parents('li').find('.comment-form');
+        var speed = 200;
+        if (commentForm.hasClass('opened')) {
+            //Свернуть открытую форму комментария, если клацнул по кнопке с открытой формой
+            commentForm.stop(true, true).slideUp(speed, function() {
+                $(this).removeClass('opened');
+                target.removeClass('with-shadow');
+            });
+            
+            return;
+        }
+        // Свернуть все открытые формы комментариев.
+        $('ul.messages-list form.comment-form.opened').stop(true, true).slideUp(speed, function() {
+            $(this).removeClass('opened');
+            $('.comment-button').removeClass('with-shadow');
+        });
+        //Показываем форму для комментария. 
+        commentForm.stop(true, true).slideDown(speed, function() {
+            $(this).addClass('opened').find('.cf-message').focus().autoResize({extraSpace:10,animate:200,minHeight:30});
+            target.addClass('with-shadow');
+        });
+    },
+    
+    /**
+    * Удалить комментарий
+    * 
+    * @param target
+    * 
+    * @returns {Boolean}
+    */
+    removeComment: function(target){
+        if(!confirm(t("Вы хотите удалить это сообщение?"))){
+            return false;
+        }
+        
+        $.post(target.attr('href'),{message_id: target.attr('rel')}, function(resp){
+            target.parent().parent().remove();
+        });
+        return false;
+    },
+    
+    /**
+    * Опубликовать новость|оставить комментарий.
+    * 
+    * @param JQUEY OBJECT target
+    * 
+    * @returns {Boolean}
+    */
+    sendMessage: function(target){
+        var obj = this;
+        var parentId = target.attr('rel');
+        var messageArea = $('form textarea.message_text_' + parentId);
+        var message = messageArea.val();
+        var key = "newMessage" + parentId;
+        if(key in this.flagsLoad && false == this.flagsLoad[key]){
+            return false;
+        }
+        this.flagsLoad[key] = false;
+
+        try{
+            if(0 == message.length || messageArea.attr('title') == message){
+                throw new Error(t('Введите сообщение'));
+            }
+            if(message.length > 420){
+                throw new Error(t('Сообщение слишком длинное'));
+            }
+        }catch(e){
+            alert(e.message);
+            return false;
+        }
+        /** @todo переписать */
+        $.post(global_urls.sendmessagewall,
+               {id_parent: parentId, message: message, wall_id: $('#wall_id').val()},
+               function(resp){
+                    resp = $.parseJSON(resp);
+                    
+                    if(resp.parent_message == 0) {
+                        $('#list_wall_messages').prepend(resp.data);
+                    } else {
+                        $('#list_comment_'+resp.parent_message).append(resp.data);
+                    }
+
+                    $('.message_text_'+parentId).val('').blur().keyup();
+                    $("#container_reply_"+parentId).hide().removeClass('opened');
+                    if(parentId > 0) {
+                        $("#container_reply_"+parentId).hide();
+                        $('.reply_'+parentId).show();
+                        $('#wall_'+parentId).prepend(resp.data);
+                        $('#one_message_'+parentId).find('.comment-button:first').click();
+                    } else {
+                        $('.news_container').prepend(resp.data);
+                    }
+                    obj.flagsLoad[key] = true;
+               });
+        return false;
+    }
+}
+
+
+
